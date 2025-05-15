@@ -10,7 +10,7 @@ const CodeContextProvider = ({ children }) => {
   const { user } = useSelector((store) => store.auth_store)
 
   const [userName, setUserName] = useState("")
-  const URL = import.meta.env.VITE_BACKEND_URL
+  const URL = "http://localhost:8080"
   const [socket, setSocket] = useState(null)
   const [lang, setLang] = useState("plaintext")
   const [theme, setTheme] = useState("vs-dark")
