@@ -11,15 +11,15 @@ import { GoogleOAuthProvider, } from "@react-oauth/google";
 
 createRoot(document.getElementById('root')).render(
   <Provider store={Store}>
-    <CodeContextProvider>
-      <AuthContextProvider>
+    <AuthContextProvider>
+      <CodeContextProvider>
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <App />
             <AuthPage />
           </BrowserRouter>
         </GoogleOAuthProvider>
-      </AuthContextProvider>
-    </CodeContextProvider>
+      </CodeContextProvider>
+    </AuthContextProvider>
   </Provider>
 )

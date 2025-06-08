@@ -1,6 +1,7 @@
-import React, { createContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { io } from "socket.io-client"
+import { authContext } from './AuthContextProvider'
 
 
 export const codeContext = createContext()
@@ -8,9 +9,10 @@ export const codeContext = createContext()
 const CodeContextProvider = ({ children }) => {
 
   const { user } = useSelector((store) => store.auth_store)
+  const { tempUserName } = useContext(authContext);
 
   const [userName, setUserName] = useState("")
-  const URL = "http://localhost:8080"
+  const URL = "https://codelive.rwinsight.site"
   const [socket, setSocket] = useState(null)
   const [lang, setLang] = useState("plaintext")
   const [theme, setTheme] = useState("vs-dark")
@@ -23,10 +25,15 @@ const CodeContextProvider = ({ children }) => {
   })
   const [totalUser, setTotalUser] = useState(0)
   const [isUserJoined, setIsUserJoined] = useState(false)
+  const [userLists, setUserLists] = useState({
+    creator: "",
+    created_at: "",
+    users: []
+  });
 
   useEffect(() => {
-    setUserName(user?.given_name || user?.name || "")
-  }, [user])
+    setUserName(user?.given_name || user?.name || tempUserName)
+  }, [user, tempUserName])
 
   useEffect(() => {
     const socketInstance = io(URL, {
@@ -55,14 +62,16 @@ const CodeContextProvider = ({ children }) => {
       setConnctionMsg(prev => ({ ...prev, successMsg: msg }))
     });
 
-    // Notify Joined or sender user 
+    // Notify Joined user itself
     socketInstance.on("userJoinSuccess", (msg) => {
       setIsUserJoined(true)
+      localStorage.setItem("isJoined", "true")
       setConnctionMsg(prev => ({ ...prev, successMsg: msg }))
     })
 
     // Set `isJoinedUser` false that ensure he could not share code
     socketInstance.on("userLeavedRoom", () => {
+      localStorage.setItem("isJoined", "false")
       setIsUserJoined(false)
       console.log("userLeavedRoom")
     });
@@ -91,6 +100,23 @@ const CodeContextProvider = ({ children }) => {
       setUserMessages((prevMessages) => [...prevMessages, { sender: name, local: 0, msg: message }]);
     });
 
+    socketInstance.on("allUsers", (response) => {
+      setUserLists({
+        creator: response.created_by,
+        created_at: response.created_at,
+        users: response.users
+      });
+      console.log(response)
+    })
+
+    socketInstance.on("seeAllUsers", (response) => {
+      setUserLists({
+        creator: response.created_by,
+        created_at: response.created_at,
+        users: response.users
+      });
+    })
+
     return () => {
       socketInstance.disconnect(); // Cleanup on unmount
     };
@@ -98,18 +124,34 @@ const CodeContextProvider = ({ children }) => {
 
   // Handle user Room joining
   const handleRoomJoining = (roomCode) => {
+    localStorage.setItem("roomId", roomCode)
+    localStorage.setItem("username", userName)
     socket?.emit("joinRoom", { name: userName, roomCode: roomCode });
   };
 
+  const handleRoomReJoining = () => {
+    const previousRoomId = localStorage.getItem("roomId")
+    const previousUserName = localStorage.getItem("username")
+    const isJoined = localStorage.getItem("isJoined") === "true"
+
+    if (isJoined && previousRoomId && previousUserName) {
+      socket.emit("rejoin", { roomId: previousRoomId, userName: previousUserName })
+    }
+  }
+
   // Sending roomCode to server for new Room creation
   const handleRoomCreation = (roomCode) => {
-    socket?.emit("createRoom", roomCode);
+    socket?.emit("createRoom", { roomCode, userName });
   };
   // Handle Leaving Room
   const handleRoomLeaving = (roomCode) => {
     socket?.emit("leaveRoom", { name: userName, roomCode: roomCode });
     setRoomCode("");
   };
+
+  const getAllUsersByRoomId = (roomId) => {
+    socket.emit("getAllUser", roomId)
+  }
 
   // Handle Code share among the rooms
   const handleCodeFromMonacoEditor = (code) => {
@@ -140,6 +182,7 @@ const CodeContextProvider = ({ children }) => {
     totalUser,
     userMessages,
     userName,
+    userLists,
     setLang,
     setTheme,
     setRoomCode,
@@ -149,7 +192,8 @@ const CodeContextProvider = ({ children }) => {
     handleRoomJoining,
     handleRoomLeaving,
     handleLocalMessageToServer,
-    setUserMessages
+    setUserMessages,
+    getAllUsersByRoomId,
   }
 
   return (
@@ -160,4 +204,3 @@ const CodeContextProvider = ({ children }) => {
 }
 
 export default CodeContextProvider
-

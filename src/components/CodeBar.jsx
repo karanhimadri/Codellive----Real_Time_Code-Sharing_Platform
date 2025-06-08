@@ -1,216 +1,243 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { assets, languages } from '../assets/assets'
-import { MdOutlineDarkMode } from "react-icons/md";
-import { MdOutlineLightMode } from "react-icons/md";
-import { FaRegCopy } from "react-icons/fa";
-import { RxCross2 } from "react-icons/rx";
+import { useContext, useEffect, useState } from 'react';
+import { assets, languages } from '../assets/assets';
+import { Sun, Moon, Copy, X, MoreVertical, LogOut, Users } from 'lucide-react';
 import { codeContext } from '../context/CodeContextProvider';
 import generateRoomId from '../utils/generateRoomID';
 import { toast } from 'react-toastify';
-import { PiDotsThreeOutlineVerticalFill } from "react-icons/pi";
-import { ImExit } from "react-icons/im";
-import { FaUsers } from "react-icons/fa";
-
 
 const CodeBar = () => {
-  const { theme, lang, totalUser, setLang, setTheme, setRoomCode, localCode, setLocalCode, connctionMsg, handleRoomCreation, handleRoomJoining, handleRoomLeaving } = useContext(codeContext)
-  const [fileName, setFileName] = useState("firstProgram.js")
-  const [copiedNotify, setCopiedNotify] = useState("")
-  const [roomsCode, setRoomsCode] = useState({
-    joinRoomCode: "",
-    createRoomCode: ""
-  })
-  const [roomStates, setRoomStates] = useState({
-    createRoomState: false,
-    joinRoomState: false,
-    divState: false,
-    isUserJoined: false
-  })
-  const [threeDotState, setThreeDotState] = useState({
-    threeState: false,
-  })
+  const {
+    theme, lang, totalUser, setLang, setTheme, setRoomCode,
+    localCode, setLocalCode, connctionMsg,
+    handleRoomCreation, handleRoomJoining, handleRoomLeaving, getAllUsersByRoomId, userLists
+  } = useContext(codeContext);
+
+  const [fileName, setFileName] = useState("firstProgram.js");
+  const [copiedNotify, setCopiedNotify] = useState("");
+  const [roomsCode, setRoomsCode] = useState({ joinRoomCode: "", createRoomCode: "" });
+  const [roomStates, setRoomStates] = useState({ createRoomState: false, joinRoomState: false, divState: false, isUserJoined: false });
+  const [threeDotState, setThreeDotState] = useState({ threeState: false });
+  const [showJoinedUsers, setShowJoinedUsers] = useState(false);
+
+  // Sample joined users list
+  const joinedUsers = ["Alice", "Bob", "Charlie", "David", "Himadri", "Karan", "Allah"];
+  const showAllJoinedUsers = () => {
+    getAllUsersByRoomId(roomsCode.joinRoomCode);
+    setShowJoinedUsers(prev => !prev)
+  }
 
   useEffect(() => {
-    if (connctionMsg?.successMsg === "") {
-      return
-    }
-    toast.success(connctionMsg?.successMsg)
-  }, [connctionMsg?.successMsg])
+    if (connctionMsg?.successMsg) toast.success(connctionMsg.successMsg);
+  }, [connctionMsg?.successMsg]);
 
   useEffect(() => {
-    if (connctionMsg?.errorMsg === "") {
-      return
-    }
-    toast.success(connctionMsg?.errorMsg)
-  }, [connctionMsg?.errorMsg])
+    if (connctionMsg?.errorMsg) toast.error(connctionMsg?.errorMsg);
+  }, [connctionMsg?.errorMsg]);
 
-  // Called when user click `Create Room` button
+  const [users, setUsers] = useState([]);
+  useEffect(() => {
+    const filtered = userLists.users.filter(u => u.name !== userLists.creator);
+    setUsers(filtered);
+  }, [userLists]);
+
   const handleOnClickCreateRoom = () => {
-    setRoomStates(pre => ({ ...pre, createRoomState: true, divState: true, joinRoomState: false }))
+    setRoomStates(prev => ({ ...prev, createRoomState: true, divState: true, joinRoomState: false }));
     if (roomsCode.createRoomCode.trim() === "") {
-      let roomID = generateRoomId();
-      handleRoomCreation(roomID)
-      setRoomsCode(pre => ({ ...pre, createRoomCode: roomID }))
+      const roomID = generateRoomId();
+      handleRoomCreation(roomID);
+      setRoomsCode(prev => ({ ...prev, createRoomCode: roomID }));
     }
-  }
-
-  // Called when User click Join Button under `Join`
-  const handleOnClickLeavingRoom = () => {
-    handleRoomLeaving(roomsCode.joinRoomCode)
-    setRoomsCode(prev => ({ ...prev, createRoomCode: "" }))
-    setRoomStates(prev => ({ ...prev, isUserJoined: false }))
-    setRoomsCode(prev => ({ ...prev, joinRoomCode: "" }))
-  }
-
-  // Called for copy the whole editor's text or code
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(localCode).then().catch();
-    setThreeDotState(prev => ({ ...prev, threeState: !prev.threeState }))
-  }
-
-  // Called for clear code or text
-  const handleClearCode = () => {
-    setLocalCode("")
-    setThreeDotState(prev => ({ ...prev, threeState: !prev.threeState }))
-  }
-
-  // This function Called for copy the created room Code to clipboard to user
-  const handleCopy = () => {
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      toast.error("Sorry, Please manually copy the code");
-      return;
-    }
-
-    navigator.clipboard
-      .writeText(roomsCode.createRoomCode.trim())
-      .then(() => {
-        setCopiedNotify("copied.")
-        setTimeout(() => {
-          setCopiedNotify("")
-        }, 3000);
-      })
-      .catch(() => {
-        setCopiedNotify("Failed to copied.")
-        setTimeout(() => {
-          setCopiedNotify("")
-        }, 3000);
-      });
   };
 
-  // Hadelling codeContext language setup
-  const handleLanguageChange = (e) => {
-    setLang(e.target.value)
-  }
+  const handleOnClickLeavingRoom = () => {
+    handleRoomLeaving(roomsCode.joinRoomCode);
+    setRoomsCode({ joinRoomCode: "", createRoomCode: "" });
+    setRoomStates(prev => ({ ...prev, isUserJoined: false }));
+    setShowJoinedUsers(false);
+  };
 
-  //  Hadelling codeContext Codde Editor Theme setup
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(localCode).catch(() => { });
+    setThreeDotState(prev => ({ ...prev, threeState: false }));
+  };
+
+  const handleClearCode = () => {
+    setLocalCode("");
+    setThreeDotState(prev => ({ ...prev, threeState: false }));
+  };
+
+  const handleCopy = () => {
+    if (!navigator.clipboard) {
+      toast.error("Please manually copy the code");
+      return;
+    }
+    navigator.clipboard.writeText(roomsCode.createRoomCode.trim())
+      .then(() => setCopiedNotify("Copied."))
+      .catch(() => setCopiedNotify("Failed to copy."));
+    setTimeout(() => setCopiedNotify(""), 3000);
+  };
+
+  const handleLanguageChange = (e) => setLang(e.target.value);
+
   const handleThemeOfEditor = () => {
-    setTheme(pre => pre === "vs-dark" ? "light" : "vs-dark")
-  }
+    setTheme(prev => prev === "vs-dark" ? "light" : "vs-dark");
+  };
 
-  //  Hadelling codeContext User joining room code setup
   const handleJoinRoomCode = () => {
     if (!/^\d{6}$/.test(roomsCode.joinRoomCode.trim())) {
-      toast.error("Invaild Code.")
-      return
+      toast.error("Invalid Code.");
+      return;
     }
-    handleRoomJoining(roomsCode.joinRoomCode)
-    setRoomCode(roomsCode.joinRoomCode)
-    setRoomStates(prev => ({ ...prev, isUserJoined: true }))
-    setRoomStates(prev => ({ ...prev, divState: false }))
-  }
+    handleRoomJoining(roomsCode.joinRoomCode);
+    setRoomCode(roomsCode.joinRoomCode);
+    setRoomStates(prev => ({ ...prev, isUserJoined: true, divState: false }));
+  };
 
   return (
-    <div className='w-full flex items-center bg-blue-500 justify-between py-3 px-16'>
-      <div className='flex items-center justify-center gap-2'>
-        <input className='w-36 px-2 py-1 bg-white text-lg rounded' type="text" value={fileName} onChange={(e) => setFileName(e.target.value)} />
-
-        <select className='px-2 py-1.5 bg-white text-lg rounded cursor-pointer' onChange={handleLanguageChange} value={lang}>
-          {languages.map((lang) => (
-            <option className='bg-gray-50' key={lang.value} value={lang.value}>
-              {lang.label}
-            </option>
+    <div className='w-full flex flex-wrap justify-between items-start bg-blue-500 py-3 px-4 md:px-16 relative'>
+      {/* Left Section */}
+      <div className='flex flex-wrap items-center gap-2'>
+        <input
+          className='w-36 px-2 py-1 text-sm rounded bg-white'
+          type="text"
+          value={fileName}
+          onChange={(e) => setFileName(e.target.value)}
+        />
+        <select
+          className='px-2 py-1 text-sm rounded bg-white cursor-pointer'
+          onChange={handleLanguageChange}
+          value={lang}>
+          {languages.map(lang => (
+            <option key={lang.value} value={lang.value}>{lang.label}</option>
           ))}
         </select>
-
-        <button className='px-2 py-[9px] bg-white text-lg rounded hover:bg-slate-100' onClick={handleThemeOfEditor}>
-          {theme === "vs-dark" ? <MdOutlineLightMode size={18} /> : <MdOutlineDarkMode size={18} />}
+        <button
+          className='p-2 bg-white rounded hover:bg-slate-100'
+          onClick={handleThemeOfEditor}>
+          {theme === "vs-dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        <div className="relative inline-block">
-          {/* Dots Button */}
-          <button onClick={() => setThreeDotState(pre => ({ ...pre, threeState: !pre.threeState }))} className="px-2 py-[9px] bg-white text-lg rounded hover:bg-slate-100 border border-gray-300">
-            <PiDotsThreeOutlineVerticalFill size={17} />
+        <div className="relative">
+          <button onClick={() => setThreeDotState(prev => ({ ...prev, threeState: !prev.threeState }))}
+            className="p-2 bg-white rounded hover:bg-slate-100 border border-gray-300">
+            <MoreVertical size={17} />
           </button>
-          {threeDotState.threeState && <div className="absolute z-10 top-full left-0 mt-2 min-w-[80px] bg-white rounded border border-gray-200 shadow-lg flex flex-col">
-            <button onClick={handleClearCode} className="w-full px-3 py-2 text-sm text-left hover:bg-blue-500 hover:text-white"> Clear </button>
-            <button onClick={handleCopyCode} className="w-full px-3 py-2 text-sm text-left hover:bg-blue-500 hover:text-white"> Copy </button>
-          </div>}
+          {threeDotState.threeState && (
+            <div className="absolute z-20 top-full mt-2 left-0 min-w-[100px] bg-white border rounded shadow">
+              <button onClick={handleClearCode} className="w-full px-3 py-2 text-left text-sm hover:bg-blue-500 hover:text-white">Clear</button>
+              <button onClick={handleCopyCode} className="w-full px-3 py-2 text-left text-sm hover:bg-blue-500 hover:text-white">Copy</button>
+            </div>
+          )}
         </div>
-
       </div>
 
-      <div className='flex items-center justify-center gap-3'>
-        {!roomStates.isUserJoined && <>
-          <button
-            className='px-3 py-1 bg-blue-500 border-2 border-white text-lg text-white rounded transition-all hover:bg-white hover:text-blue-500 duration-300'
-            onClick={handleOnClickCreateRoom}>
-            Create Room
-          </button>
-          <button className='px-3 py-1 bg-white text-lg rounded hover:bg-slate-100'
-            onClick={() => setRoomStates(pre => ({ ...pre, createRoomState: false, divState: true, joinRoomState: true }))}>
-            Join
-          </button>
-        </>}
-        {roomStates.isUserJoined && <>
-          <div className='flex items-center px-4 py-1 bg-white gap-4 rounded'>
-            <video className="w-8" autoPlay muted loop preload="auto">
-              <source src={assets.LIVE_video} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            <p className='flex items-center gap-2'>Code: <span className='font-bold text-gray-500'>{roomsCode.joinRoomCode}</span></p>
-            <p className='flex items-center gap-2'><FaUsers /> <span>{totalUser}</span></p>
+      {/* Right Section */}
+      <div className='flex flex-col items-end gap-2 relative'>
+        {!roomStates.isUserJoined ? (
+          <div className='flex gap-2'>
+            <button
+              className='px-3 py-1 text-white bg-blue-600 border border-white rounded hover:bg-white hover:text-blue-600 transition'
+              onClick={handleOnClickCreateRoom}>
+              Create Room
+            </button>
+            <button
+              className='px-3 py-1 bg-white text-sm border rounded hover:bg-slate-100'
+              onClick={() => setRoomStates(prev => ({
+                ...prev,
+                createRoomState: false,
+                divState: true,
+                joinRoomState: true
+              }))}>
+              Join
+            </button>
           </div>
-          <button
-            onClick={handleOnClickLeavingRoom}
-            className='px-2 py-2 bg-blue-500 border-2 border-white text-lg text-white rounded transition-all hover:bg-white hover:text-black duration-300'>
-            <ImExit size={20} />
-          </button>
-        </>}
-
-        {roomStates.divState && <div className='absolute z-10 top-36 w-72 h-20 bg-white shadow-xl p-2 rounded border border-gray-400'>
-
-          <div className='flex items-center justify-between'>
-            {roomStates.createRoomState && <p className='text-sm text-gray-700'>Share this Room code with your friends.</p>}
-            {roomStates.joinRoomState && <p className='text-sm text-gray-700'>Paste here your room code for join.</p>}
-            <span onClick={() => setRoomStates(pre => ({ ...pre, divState: false }))}
-              className='pb-4 text-gray-500 cursor-pointer hover:text-black'>
-              <RxCross2 />
-            </span>
+        ) : (
+          <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-3 px-4 py-1 bg-white rounded'>
+              <video className="w-6" autoPlay muted loop>
+                <source src={assets.LIVE_video} type="video/mp4" />
+              </video>
+              <p className='text-sm'>Code: <span className='font-semibold text-gray-700'>{roomsCode.joinRoomCode}</span></p>
+              <button onClick={() => showAllJoinedUsers()}>
+                <p className='flex items-center text-sm gap-1'><Users size={20} className='text-red-600 hover:text-black' /> {totalUser} </p>
+              </button>
+            </div>
+            <button
+              onClick={handleOnClickLeavingRoom}
+              className='p-2 bg-blue-600 text-white border border-white rounded hover:bg-white hover:text-black transition'>
+              <LogOut size={18} />
+            </button>
           </div>
+        )}
 
-          <div className='flex items-center mt-1 gap-2'>
-            {roomStates.createRoomState && <input className='border-dashed border-gray-500 w-20 pl-4 focus:outline-none' readOnly type="text" value={roomsCode.createRoomCode} />}
-            {roomStates.createRoomState && <>
-              <span onClick={handleCopy} className='cursor-pointer hover:text-gray-400'>
-                <FaRegCopy />
-              </span>
-              <span className='italic text-gray-400'>{copiedNotify}</span>
-            </>}
-            {roomStates.joinRoomState &&
-              <div className='flex items-center gap-2'>
-                <input className='border-2 border-gray-400 w-28 pl-4 rounded focus:outline-none' type="text" value={roomsCode.joinRoomCode}
-                  onChange={(e) => setRoomsCode(pre => ({ ...pre, joinRoomCode: e.target.value }))}
-                />
-                <button onClick={handleJoinRoomCode} className='border-2 border-white px-2.5 py-[2px] rounded bg-blue-500 text-white'>Join</button>
-              </div>
-            }
+        {/* Room Code Entry Box */}
+        {roomStates.divState && (
+          <div className='absolute top-[110%] right-0 w-80 bg-white shadow-xl p-4 rounded border border-gray-300 z-50'>
+            <div className='flex justify-between items-center mb-2'>
+              <p className='text-sm text-gray-600'>
+                {roomStates.createRoomState
+                  ? "Share this Room code with your friends."
+                  : "Paste the room code to join."}
+              </p>
+              <X onClick={() => setRoomStates(prev => ({ ...prev, divState: false }))}
+                className='cursor-pointer text-gray-500 hover:text-black' />
+            </div>
+
+            <div className='flex items-center gap-2'>
+              {roomStates.createRoomState && (
+                <>
+                  <input readOnly className='border px-3 py-1 rounded w-24' value={roomsCode.createRoomCode} />
+                  <Copy onClick={handleCopy} className='cursor-pointer hover:text-gray-500' />
+                  <span className='text-xs italic text-green-500'>{copiedNotify}</span>
+                </>
+              )}
+              {roomStates.joinRoomState && (
+                <>
+                  <input
+                    className='border px-3 py-1 rounded w-32'
+                    value={roomsCode.joinRoomCode}
+                    onChange={(e) => setRoomsCode(prev => ({ ...prev, joinRoomCode: e.target.value }))}
+                    placeholder="Enter Code"
+                  />
+                  <button
+                    onClick={handleJoinRoomCode}
+                    className='bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700'>
+                    Join
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+        )}
 
-        </div>}
+        {/* Joined Users Card */}
+        {showJoinedUsers && (
+          <div className='absolute top-[115%] right-0 w-72 bg-white border shadow-lg rounded p-4 z-50'>
+            <div className='flex justify-between items-center mb-2'>
+              <p className='text-sm font-semibold'>Joined Users</p>
+              <X onClick={() => setShowJoinedUsers(false)} className='cursor-pointer hover:text-yellow-800' size={18} />
+            </div>
+            <ul className="max-h-40 overflow-y-auto space-y-1">
+              <li className="sticky top-0 z-10 flex justify-between items-center px-3 py-1 text-sm rounded bg-yellow-100 border border-yellow-500 font-semibold shadow-sm">
+                <span className="text-yellow-800">👑 {userLists.creator}</span>
+                <span className="text-xs text-yellow-700">{userLists.created_at}</span>
+              </li>
 
+              {users.map((user, i) => (
+                <li
+                  key={i}
+                  className="flex justify-between items-center px-3 py-1 text-sm rounded bg-green-200 hover:bg-slate-200"
+                >
+                  <span>{user.name}</span>
+                  <span className="text-xs text-gray-500">{user.joined_at}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CodeBar
+export default CodeBar;
