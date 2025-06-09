@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Code, Users, GraduationCap, ArrowRight, Play, Star } from "lucide-react";
+import { Code, Users, GraduationCap, ArrowRight, Play, Star, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 
@@ -7,10 +7,20 @@ const HomePage = () => {
   // Mock navigation function for demo
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
-
+  const [serverDown, setServerDown] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
+  }, []);
+
+  useEffect(() => {
+    fetch("https://codelive.rwinsight.site/api/ping")
+      .then((res) => {
+        if (!res.ok) setServerDown(true)
+      })
+      .catch(() => {
+        setServerDown(true);
+      });
   }, []);
 
   const features = [
@@ -44,6 +54,63 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* WARNING CARD FOR SERVER STATUS */}
+      {serverDown && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative bg-yellow-100 border border-yellow-300 text-yellow-900 px-6 py-6 rounded-2xl shadow-xl max-w-lg w-full text-center animate-pulse-slow">
+
+            {/* Close Button (UI Only) */}
+            <button
+              className="absolute top-3 right-3 text-yellow-900 hover:text-yellow-600 transition"
+              aria-label="Close"
+              onClick={() => setServerDown(false)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Icon + Title */}
+            <div className="flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-yellow-800 mr-2" />
+              <h2 className="text-xl font-semibold">Server is Down</h2>
+            </div>
+
+            {/* Message */}
+            <p className="text-sm sm:text-base mb-4">
+              Oops! Some features may not work right now. This happens when the backend server is sleeping or under maintenance.
+              Please try again later or check the source code:
+            </p>
+
+            {/* GitHub Button */}
+            <div className="flex gap-4 justify-center">
+              <a
+                href="https://github.com/karanhimadri/Codellive----Real_Time_Code-Sharing_Platform.git"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-5 py-2 rounded-md text-sm font-medium transition"
+              >
+                View on GitHub
+              </a>
+              <a
+                onClick={() => { navigate("/contact"); setServerDown(false) }}
+                rel="noopener noreferrer"
+                className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-5 py-2 rounded-md text-sm font-medium transition cursor-pointer"
+              >
+                Contact Me
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Background Pattern */}
